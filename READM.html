@@ -1,0 +1,183 @@
+﻿<!DOCTYPE html>
+<html>
+
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>README.md</title>
+  <link rel="stylesheet" href="https://stackedit.io/style.css" />
+</head>
+
+<body class="stackedit">
+  <div class="stackedit__html"><h1 id="cryptarithmetic-solver">Cryptarithmetic Solver</h1>
+<h2 id="project-description">Project Description</h2>
+<p>This project is a Python program designed to solve cryptarithmetic problems. It uses a backtracking algorithm with Minimum Remaining Values (MRV) and Degree Heuristic (DH) to find digit substitutions for letters that make the cryptarithmetic addition equation true.</p>
+<h2 id="how-to-run-the-program">How to Run the Program</h2>
+<p>To run the program, use the following command in the terminal:<br>
+<code>bash python script.py input_filename.txt output_filename.txt</code></p>
+<p>The program reads the cryptarithmetic problem from <code>input_filename.txt</code> and writes the solution to <code>default_output.txt</code>, unless another output filename is specified.</p>
+<h2 id="source-code">Source Code</h2>
+<p>The main components of the source code include:</p>
+<ul>
+<li><code>read_data</code>: Reads and processes the input file.</li>
+<li><code>calculate_degree</code>: Calculates the degree of each variable.</li>
+<li><code>select_unassigned_variable</code>: Selects the next variable to assign using MRV and DH.</li>
+<li><code>is_valid</code>: Checks if the current assignment is valid.</li>
+<li><code>backtrack</code>: The core backtracking algorithm.</li>
+<li><code>output_solution</code>: Outputs the solution to a file.</li>
+</ul>
+<pre class=" language-python"><code class="prism  language-python"><span class="token keyword">import</span> sys
+<span class="token keyword">def</span> <span class="token function">read_data</span><span class="token punctuation">(</span>filename<span class="token punctuation">)</span><span class="token punctuation">:</span>
+    <span class="token keyword">with</span> <span class="token builtin">open</span><span class="token punctuation">(</span>filename<span class="token punctuation">,</span> <span class="token string">'r'</span><span class="token punctuation">)</span> <span class="token keyword">as</span> <span class="token builtin">file</span><span class="token punctuation">:</span>
+        <span class="token comment"># Read each line of the file and remove the newline character at the end of each line</span>
+        lines <span class="token operator">=</span> <span class="token punctuation">[</span>line<span class="token punctuation">.</span>strip<span class="token punctuation">(</span><span class="token punctuation">)</span> <span class="token keyword">for</span> line <span class="token keyword">in</span> <span class="token builtin">file</span><span class="token punctuation">.</span>readlines<span class="token punctuation">(</span><span class="token punctuation">)</span><span class="token punctuation">]</span>
+   
+        <span class="token comment"># Extract all unique characters</span>
+    unique_chars <span class="token operator">=</span> <span class="token builtin">set</span><span class="token punctuation">(</span><span class="token string">''</span><span class="token punctuation">.</span>join<span class="token punctuation">(</span>lines<span class="token punctuation">)</span><span class="token punctuation">)</span>
+
+    <span class="token comment"># Initialize the set of possible numbers each character can represent</span>
+    variables <span class="token operator">=</span> <span class="token punctuation">{</span>char<span class="token punctuation">:</span> <span class="token builtin">set</span><span class="token punctuation">(</span><span class="token builtin">range</span><span class="token punctuation">(</span><span class="token number">10</span><span class="token punctuation">)</span><span class="token punctuation">)</span> <span class="token keyword">for</span> char <span class="token keyword">in</span> unique_chars<span class="token punctuation">}</span>
+
+    <span class="token comment"># For the first letter of each word in the addition operation, remove the possibility of being 0</span>
+    <span class="token keyword">for</span> line <span class="token keyword">in</span> lines<span class="token punctuation">:</span>
+        first_char <span class="token operator">=</span> line<span class="token punctuation">[</span><span class="token number">0</span><span class="token punctuation">]</span>
+        <span class="token keyword">if</span> first_char <span class="token keyword">in</span> variables<span class="token punctuation">:</span>
+            variables<span class="token punctuation">[</span>first_char<span class="token punctuation">]</span><span class="token punctuation">.</span>discard<span class="token punctuation">(</span><span class="token number">0</span><span class="token punctuation">)</span>
+    <span class="token keyword">return</span> lines<span class="token punctuation">,</span> variables
+
+<span class="token keyword">def</span> <span class="token function">calculate_degree</span><span class="token punctuation">(</span>variable<span class="token punctuation">,</span> lines<span class="token punctuation">)</span><span class="token punctuation">:</span>
+    <span class="token comment"># Calculate the total number of occurrences of the variable in all lines</span>
+    <span class="token keyword">return</span> <span class="token builtin">sum</span><span class="token punctuation">(</span>line<span class="token punctuation">.</span>count<span class="token punctuation">(</span>variable<span class="token punctuation">)</span> <span class="token keyword">for</span> line <span class="token keyword">in</span> lines<span class="token punctuation">)</span>
+
+<span class="token keyword">def</span> <span class="token function">select_unassigned_variable</span><span class="token punctuation">(</span>assignment<span class="token punctuation">,</span> variables<span class="token punctuation">,</span> lines<span class="token punctuation">)</span><span class="token punctuation">:</span>
+    <span class="token comment"># First use MRV to select a variable</span>
+    unassigned_vars <span class="token operator">=</span> <span class="token punctuation">[</span>v <span class="token keyword">for</span> v <span class="token keyword">in</span> variables <span class="token keyword">if</span> v <span class="token operator">not</span> <span class="token keyword">in</span> assignment<span class="token punctuation">]</span>
+    vars_with_min_values <span class="token operator">=</span> <span class="token punctuation">[</span>v <span class="token keyword">for</span> v <span class="token keyword">in</span> unassigned_vars <span class="token keyword">if</span> <span class="token builtin">len</span><span class="token punctuation">(</span>variables<span class="token punctuation">[</span>v<span class="token punctuation">]</span><span class="token punctuation">)</span> <span class="token operator">==</span> <span class="token builtin">min</span><span class="token punctuation">(</span><span class="token builtin">len</span><span class="token punctuation">(</span>variables<span class="token punctuation">[</span>v<span class="token punctuation">]</span><span class="token punctuation">)</span> <span class="token keyword">for</span> v <span class="token keyword">in</span> unassigned_vars<span class="token punctuation">)</span><span class="token punctuation">]</span>
+
+    <span class="token comment"># If there are multiple variables with the same minimum remaining values, use DH to select a variable</span>
+    <span class="token keyword">if</span> <span class="token builtin">len</span><span class="token punctuation">(</span>vars_with_min_values<span class="token punctuation">)</span> <span class="token operator">&gt;</span> <span class="token number">1</span><span class="token punctuation">:</span>
+        <span class="token keyword">return</span> <span class="token builtin">max</span><span class="token punctuation">(</span>vars_with_min_values<span class="token punctuation">,</span> key<span class="token operator">=</span><span class="token keyword">lambda</span> var<span class="token punctuation">:</span> calculate_degree<span class="token punctuation">(</span>var<span class="token punctuation">,</span> lines<span class="token punctuation">)</span><span class="token punctuation">)</span>
+    <span class="token keyword">else</span><span class="token punctuation">:</span>
+        <span class="token keyword">return</span> vars_with_min_values<span class="token punctuation">[</span><span class="token number">0</span><span class="token punctuation">]</span> <span class="token keyword">if</span> vars_with_min_values <span class="token keyword">else</span> <span class="token boolean">None</span>
+
+<span class="token keyword">def</span> <span class="token function">is_valid</span><span class="token punctuation">(</span>assignment<span class="token punctuation">,</span> lines<span class="token punctuation">)</span><span class="token punctuation">:</span>
+    <span class="token keyword">try</span><span class="token punctuation">:</span>
+        values <span class="token operator">=</span> <span class="token punctuation">[</span><span class="token punctuation">]</span>
+        <span class="token keyword">for</span> line <span class="token keyword">in</span> lines<span class="token punctuation">:</span>
+            number <span class="token operator">=</span> <span class="token string">''</span>
+            <span class="token keyword">for</span> char <span class="token keyword">in</span> line<span class="token punctuation">:</span>
+                <span class="token keyword">if</span> char <span class="token keyword">in</span> assignment<span class="token punctuation">:</span>
+                    number <span class="token operator">+=</span> <span class="token builtin">str</span><span class="token punctuation">(</span>assignment<span class="token punctuation">[</span>char<span class="token punctuation">]</span><span class="token punctuation">)</span>
+                <span class="token keyword">else</span><span class="token punctuation">:</span>
+                    <span class="token comment"># Return False if the character has not yet been assigned</span>
+                    <span class="token keyword">print</span><span class="token punctuation">(</span>f<span class="token string">"Character '{char}' not yet assigned."</span><span class="token punctuation">)</span>
+                    <span class="token keyword">return</span> <span class="token boolean">False</span>
+            values<span class="token punctuation">.</span>append<span class="token punctuation">(</span><span class="token builtin">int</span><span class="token punctuation">(</span>number<span class="token punctuation">)</span><span class="token punctuation">)</span>
+
+        valid <span class="token operator">=</span> <span class="token builtin">sum</span><span class="token punctuation">(</span>values<span class="token punctuation">[</span><span class="token punctuation">:</span><span class="token operator">-</span><span class="token number">1</span><span class="token punctuation">]</span><span class="token punctuation">)</span> <span class="token operator">==</span> values<span class="token punctuation">[</span><span class="token operator">-</span><span class="token number">1</span><span class="token punctuation">]</span>
+        <span class="token keyword">return</span> valid
+    <span class="token keyword">except</span> ValueError<span class="token punctuation">:</span>
+        <span class="token keyword">print</span><span class="token punctuation">(</span><span class="token string">"Invalid: ValueError encountered."</span><span class="token punctuation">)</span>
+        <span class="token keyword">return</span> <span class="token boolean">False</span>
+
+<span class="token keyword">def</span> <span class="token function">backtrack</span><span class="token punctuation">(</span>assignment<span class="token punctuation">,</span> variables<span class="token punctuation">,</span> lines<span class="token punctuation">,</span> depth<span class="token operator">=</span><span class="token number">0</span><span class="token punctuation">)</span><span class="token punctuation">:</span>
+    <span class="token keyword">if</span> <span class="token builtin">len</span><span class="token punctuation">(</span>assignment<span class="token punctuation">)</span> <span class="token operator">==</span> <span class="token builtin">len</span><span class="token punctuation">(</span>variables<span class="token punctuation">)</span><span class="token punctuation">:</span>
+        <span class="token keyword">return</span> assignment <span class="token keyword">if</span> is_valid<span class="token punctuation">(</span>assignment<span class="token punctuation">,</span> lines<span class="token punctuation">)</span> <span class="token keyword">else</span> <span class="token boolean">None</span>
+
+    var <span class="token operator">=</span> select_unassigned_variable<span class="token punctuation">(</span>assignment<span class="token punctuation">,</span> variables<span class="token punctuation">,</span> lines<span class="token punctuation">)</span>
+    <span class="token keyword">for</span> value <span class="token keyword">in</span> variables<span class="token punctuation">[</span>var<span class="token punctuation">]</span><span class="token punctuation">:</span>
+        <span class="token comment"># Ensure the current value being tried is not already used by an assigned variable</span>
+        <span class="token keyword">if</span> <span class="token builtin">any</span><span class="token punctuation">(</span>value <span class="token operator">==</span> assigned_value <span class="token keyword">for</span> assigned_value <span class="token keyword">in</span> assignment<span class="token punctuation">.</span>values<span class="token punctuation">(</span><span class="token punctuation">)</span><span class="token punctuation">)</span><span class="token punctuation">:</span>
+            <span class="token keyword">continue</span>
+
+        new_assignment <span class="token operator">=</span> assignment<span class="token punctuation">.</span>copy<span class="token punctuation">(</span><span class="token punctuation">)</span>
+        new_assignment<span class="token punctuation">[</span>var<span class="token punctuation">]</span> <span class="token operator">=</span> value
+
+        result <span class="token operator">=</span> backtrack<span class="token punctuation">(</span>new_assignment<span class="token punctuation">,</span> variables<span class="token punctuation">,</span> lines<span class="token punctuation">,</span> depth <span class="token operator">+</span> <span class="token number">1</span><span class="token punctuation">)</span>
+        <span class="token keyword">if</span> result <span class="token keyword">is</span> <span class="token operator">not</span> <span class="token boolean">None</span><span class="token punctuation">:</span>
+            <span class="token keyword">return</span> result
+
+    <span class="token keyword">return</span> <span class="token boolean">None</span>
+
+<span class="token comment"># Example usage</span>
+<span class="token comment"># Note: This code is for reference only and should be used within a complete code framework</span>
+<span class="token comment"># that includes the definition of select_unassigned_variable and other functions</span>
+
+<span class="token comment"># Solve the problem</span>
+
+<span class="token keyword">def</span> <span class="token function">output_solution</span><span class="token punctuation">(</span>solution<span class="token punctuation">,</span> lines<span class="token punctuation">,</span> filename<span class="token punctuation">)</span><span class="token punctuation">:</span>
+    <span class="token keyword">with</span> <span class="token builtin">open</span><span class="token punctuation">(</span>filename<span class="token punctuation">,</span> <span class="token string">'w'</span><span class="token punctuation">)</span> <span class="token keyword">as</span> <span class="token builtin">file</span><span class="token punctuation">:</span>
+        <span class="token keyword">for</span> line <span class="token keyword">in</span> lines<span class="token punctuation">:</span>
+            <span class="token comment"># Replace each character in the line with the corresponding number</span>
+            number_line <span class="token operator">=</span> <span class="token string">''</span><span class="token punctuation">.</span>join<span class="token punctuation">(</span><span class="token builtin">str</span><span class="token punctuation">(</span>solution<span class="token punctuation">[</span>char<span class="token punctuation">]</span><span class="token punctuation">)</span> <span class="token keyword">if</span> char <span class="token keyword">in</span> solution <span class="token keyword">else</span> char <span class="token keyword">for</span> char <span class="token keyword">in</span> line<span class="token punctuation">.</span>strip<span class="token punctuation">(</span><span class="token punctuation">)</span><span class="token punctuation">)</span>
+            <span class="token builtin">file</span><span class="token punctuation">.</span>write<span class="token punctuation">(</span>number_line <span class="token operator">+</span> <span class="token string">'\n'</span><span class="token punctuation">)</span>
+
+
+<span class="token keyword">def</span> <span class="token function">main</span><span class="token punctuation">(</span><span class="token punctuation">)</span><span class="token punctuation">:</span>
+    
+    <span class="token keyword">if</span> <span class="token builtin">len</span><span class="token punctuation">(</span>sys<span class="token punctuation">.</span>argv<span class="token punctuation">)</span> <span class="token operator">&lt;</span> <span class="token number">2</span><span class="token punctuation">:</span>
+        <span class="token keyword">print</span><span class="token punctuation">(</span><span class="token string">"Usage: python script.py input_filename [output_filename]"</span><span class="token punctuation">)</span>
+        <span class="token keyword">return</span>
+
+    input_filename <span class="token operator">=</span> sys<span class="token punctuation">.</span>argv<span class="token punctuation">[</span><span class="token number">1</span><span class="token punctuation">]</span>  <span class="token comment"># First command line argument</span>
+    output_filename <span class="token operator">=</span> sys<span class="token punctuation">.</span>argv<span class="token punctuation">[</span><span class="token number">2</span><span class="token punctuation">]</span> <span class="token keyword">if</span> <span class="token builtin">len</span><span class="token punctuation">(</span>sys<span class="token punctuation">.</span>argv<span class="token punctuation">)</span> <span class="token operator">&gt;</span> <span class="token number">2</span> <span class="token keyword">else</span> <span class="token string">"default_output.txt"</span>  <span class="token comment"># Second command line argument or default</span>
+
+    <span class="token comment"># Read problem data and initialize variables</span>
+    lines<span class="token punctuation">,</span> variables<span class="token punctuation">,</span><span class="token operator">=</span> read_data<span class="token punctuation">(</span>input_filename<span class="token punctuation">)</span>
+
+    <span class="token comment"># Initialize current solution</span>
+    assignment <span class="token operator">=</span> <span class="token punctuation">{</span><span class="token punctuation">}</span>
+
+    <span class="token comment"># Use the backtracking algorithm to find a solution</span>
+    solution <span class="token operator">=</span> backtrack<span class="token punctuation">(</span>assignment<span class="token punctuation">,</span> variables<span class="token punctuation">,</span> lines<span class="token punctuation">)</span>
+    
+    <span class="token keyword">if</span> solution<span class="token punctuation">:</span>
+        <span class="token comment"># If a solution is found, output it to a file</span>
+        output_solution<span class="token punctuation">(</span>solution<span class="token punctuation">,</span> lines<span class="token punctuation">,</span> output_filename<span class="token punctuation">)</span>
+        <span class="token keyword">print</span><span class="token punctuation">(</span>f<span class="token string">"Solution found and written to {output_filename}"</span><span class="token punctuation">)</span>
+    <span class="token keyword">else</span><span class="token punctuation">:</span>
+        <span class="token comment"># If no solution is found</span>
+        <span class="token keyword">print</span><span class="token punctuation">(</span><span class="token string">"No solution found."</span><span class="token punctuation">)</span>
+
+<span class="token keyword">if</span> __name__ <span class="token operator">==</span> <span class="token string">"__main__"</span><span class="token punctuation">:</span>
+    main<span class="token punctuation">(</span><span class="token punctuation">)</span>
+</code></pre>
+<h2 id="output-files">Output Files</h2>
+<p>The program generates output files with the solutions to the provided cryptarithmetic problems. Examples of these output files include:</p>
+<h3 id="output1.txt">Output1.txt</h3>
+<pre class=" language-text"><code class="prism  language-text">9567
+1085
+10652
+</code></pre>
+<h3 id="output2.txt">Output2.txt</h3>
+<pre class=" language-text"><code class="prism  language-text">7483
+7455
+14938
+</code></pre>
+<h3 id="output3.txt">Output3.txt</h3>
+<pre class=" language-text"><code class="prism  language-text">1657
+8656
+10313
+</code></pre>
+<h3 id="output4.txt">Output4.txt</h3>
+<pre class=" language-text"><code class="prism  language-text">9085
+1279
+10364
+</code></pre>
+<h2 id="additional-notes">Additional Notes</h2>
+<ul>
+<li>Ensure Python 3.x is installed on your system to run the program.</li>
+<li>Modify the input file path as needed.</li>
+</ul>
+<h2 id="author">Author</h2>
+<ul>
+<li>Name: Yujun Chen</li>
+<li><a href="mailto:yc5508@nyu.edu">yc5508@nyu.edu</a></li>
+</ul>
+<blockquote>
+<p>Written with <a href="https://stackedit.io/">StackEdit</a>.</p>
+</blockquote>
+</div>
+</body>
+
+</html>

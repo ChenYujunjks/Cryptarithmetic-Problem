@@ -1,27 +1,3 @@
-﻿
-# Cryptarithmetic Solver
-
-## Project Description
-This project is a Python program designed to solve cryptarithmetic problems. It uses a backtracking algorithm with Minimum Remaining Values (MRV) and Degree Heuristic (DH) to find digit substitutions for letters that make the cryptarithmetic addition equation true.
-
-## How to Run the Program
-To run the program, use the following command in the terminal:
-`bash
-python script.py input_filename.txt output_filename.txt`
-
-
-The program reads the cryptarithmetic problem from `input_filename.txt` and writes the solution to `default_output.txt`, unless another output filename is specified.
-
-## Source Code
-The main components of the source code include:
-- `read_data`: Reads and processes the input file.
-- `calculate_degree`: Calculates the degree of each variable.
-- `select_unassigned_variable`: Selects the next variable to assign using MRV and DH.
-- `is_valid`: Checks if the current assignment is valid.
-- `backtrack`: The core backtracking algorithm.
-- `output_solution`: Outputs the solution to a file.
-
-``` python
 import sys
 def read_data(filename):
     with open(filename, 'r') as file:
@@ -137,42 +113,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-```
-
-
-## Output Files
-The program generates output files with the solutions to the provided cryptarithmetic problems. Examples of these output files include:
-
-### Output1.txt
-```text
-9567
-1085
-10652
-```
-### Output2.txt
-```text
-7483
-7455
-14938
-```
-### Output3.txt
-```text
-1657
-8656
-10313
-```
-### Output4.txt
-```text
-9085
-1279
-10364
-```
-## Additional Notes
-- Ensure Python 3.x is installed on your system to run the program.
-- Modify the input file path as needed.
-
-## Author
-- Name: Yujun Chen
-- yc5508@nyu.edu
-
-> Written with [StackEdit](https://stackedit.io/).
